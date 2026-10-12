@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matriz de Control de Proyectos - Calidad y Manufactura</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Iconos FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS para lectura de Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js para las gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .perspective-container {
+            perspective: 1000px;
+        }
+        .card-3d {
+            transform: rotateX(8deg) rotateY(-8deg);
+            transition: transform 0.5s ease;
+        }
+        .card-3d:hover {
+            transform: rotateX(0deg) rotateY(0deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <!-- Header Principal -->
+    <header class="bg-slate-900 text-white shadow-md p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-industry"></i> QMS Ingeniería - Control de Proyectos</h1>
+            <p class="text-xs text-slate-400">Control operativo, NPI, mapeo, mejoras y analítica con retención de 6 meses</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div>
+                <label class="text-xs text-slate-300 block font-semibold">Seleccionar Proyecto Activo:</label>
+                <select id="global-model-select" class="bg-slate-800 text-white border border-slate-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    <!-- Modelos cargados por JS -->
+                </select>
+            </div>
+            <button onclick="exportarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm transition cursor-pointer" title="Exportar respaldo"><i class="fa-solid fa-download"></i> Respaldar</button>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+
+        <!-- Pestañas de Navegación -->
+        <div class="flex flex-wrap gap-2 border-b border-slate-300 pb-3 mb-6">
+            <button onclick="cambiarPestana('matriz')" class="tab-btn px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium transition cursor-pointer shadow-sm" data-target="matriz">Matriz General</button>
+            <button onclick="cambiarPestana('npi')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="npi">Proyectos NPI</button>
+            <button onclick="cambiarPestana('prs')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="prs">Status PR´s</button>
+            <button onclick="cambiarPestana('yield_diario')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="yield_diario">Yield Diario</button>
+            <button onclick="cambiarPestana('yield_semanal')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="yield_semanal">Yield Semanal</button>
+            <button onclick="cambiarPestana('tiempo_muerto')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="tiempo_muerto">Tiempo Muerto</button>
+            <button onclick="cambiarPestana('acciones')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="acciones">Acciones</button>
+            <button onclick="cambiarPestana('mejoras')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="mejoras">Mejoras / Improvements</button>
+            <button onclick="cambiarPestana('mapeo')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="mapeo">Mapeo de Proceso</button>
+            <button onclick="cambiarPestana('enlaces')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="enlaces">Enlaces Externos</button>
+            <button onclick="cambiarPestana('dashboard')" class="tab-btn px-4 py-2 bg-white text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition cursor-pointer border border-slate-200" data-target="dashboard">Dashboard & Top 5</button>
+        </div>
+
+        <!-- CONTENIDO: MATRIZ GENERAL -->
+        <section id="sec-matriz" class="tab-content py-6 space-y-6 flex flex-col items-center">
+            <div class="perspective-container w-full max-w-xl">
+                <div class="card-3d bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white p-10 rounded-2xl shadow-2xl border border-indigo-500/30 text-center relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                    
+                    <div class="relative z-10 space-y-6">
+                        <div class="inline-flex p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner">
+                            <i class="fa-solid fa-cube text-4xl text-blue-400"></i>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-blue-200 to-indigo-300 bg-clip-text text-transparent">
+                            QMS Ingeniería
+                        </h2>
+                        <p class="text-slate-300 text-sm max-w-md mx-auto">
+                            Sistema Integral de Gestión de Calidad, Manufactura y Trazabilidad Operativa para Líneas de Producción y Celdas SMT.
+                        </p>
+                        <div class="pt-4 flex flex-wrap justify-center gap-3">
+                            <button onclick="cambiarPestana('npi')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg transition cursor-pointer flex items-center gap-2">
+                                <i class="fa-solid fa-rocket"></i> Ver Proyectos NPI
+                            </button>
+                            <a href="#listado-matriz-general" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg border border-slate-700 transition flex items-center gap-2">
+                                <i class="fa-solid fa-list-check"></i> Listado General
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-4xl bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-md font-bold text-slate-800 border-b pb-2"><i class="fa-solid fa-circle-plus text-blue-600"></i> Registrar Nuevo Proyecto en Matriz General</h3>
+                <form id="form-nuevo-general" onsubmit="guardarNuevoProyectoGeneral(event)" class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="input-nuevo-general" required placeholder="Nombre del nuevo proyecto/modelo..." class="flex-1 border rounded p-2 text-sm focus:outline-none focus:border-blue-500 bg-slate-50">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Agregar a Matriz
+                    </button>
+                </form>
+            </div>
+
+            <div id="listado-matriz-general" class="w-full max-w-4xl bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Proyectos en Matriz General (Liberados / Producción)</h3>
+                        <p class="text-xs text-slate-500">Listado de modelos activos dentro del sistema general de calidad.</p>
+                    </div>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full" id="contador-matriz-general">0 Proyectos</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="grid-matriz-general"></div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: PROYECTOS NPI -->
+        <section id="sec-npi" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-md font-bold text-slate-800 border-b pb-2"><i class="fa-solid fa-circle-plus text-purple-600"></i> Registrar / Actualizar Proyecto NPI</h3>
+                <form id="form-nuevo-npi" onsubmit="guardarProyectoNPI(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Modelo</label>
+                        <select id="npi-modelo" required class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Área</label>
+                        <input type="text" id="npi-area" required placeholder="Ej. Calidad / SMT / Manufactura" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Revisión</label>
+                        <input type="text" id="npi-revision" required placeholder="Ej. Rev. A, Rev. B" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Acción</label>
+                        <input type="text" id="npi-accion" required placeholder="Acción o pendiente a realizar..." class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                        <select id="npi-status" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="Completado">Completado</option>
+                            <option value="En Revisión">En Revisión</option>
+                            <option value="Delay">Delay</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha de Corrida</label>
+                        <input type="date" id="npi-fechacorrida" required class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status General / Fase</label>
+                        <input type="text" id="npi-statusgeneral" required placeholder="Ej. Validación / Piloto" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div class="md:col-span-3 flex justify-between items-center pt-2">
+                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Guardar Registro NPI
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h2 class="text-lg font-bold text-slate-800">Gestión de Proyectos NPI (New Product Introduction)</h2>
+                    <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full" id="contador-npi">0 Registros</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="tabla-npi">
+                        <thead>
+                            <tr class="bg-slate-100 border-b text-xs text-slate-600 uppercase">
+                                <th class="p-2.5">Modelo</th>
+                                <th class="p-2.5">Área</th>
+                                <th class="p-2.5">Revisión</th>
+                                <th class="p-2.5">Acción</th>
+                                <th class="p-2.5">Status</th>
+                                <th class="p-2.5">Fecha de Corrida</th>
+                                <th class="p-2.5">Status (Fase)</th>
+                                <th class="p-2.5 text-center">Mover a Matriz</th>
+                                <th class="p-2.5 text-center">Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: STATUS PR'S -->
+        <section id="sec-prs" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-md font-bold text-slate-800 border-b pb-2"><i class="fa-solid fa-file-invoice-dollar text-cyan-600"></i> Registrar / Actualizar Status PR (Purchase Requisition)</h3>
+                <form id="form-nuevo-pr" onsubmit="guardarRegistroPR(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Número de PR</label>
+                        <input type="text" id="pr-numero" required placeholder="Ej. PR-2026-001" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Área</label>
+                        <input type="text" id="pr-area" required placeholder="Ej. Ingeniería / SMT / Mantenimiento" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                        <select id="pr-status" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-cyan-500">
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="Aprobada">Aprobada</option>
+                            <option value="Completado">Completado</option>
+                            <option value="En Revisión">En Revisión</option>
+                            <option value="Delay">Delay</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción de Tooling</label>
+                        <input type="text" id="pr-descripcion" required placeholder="Ej. Stencil de precisión / Pallet SMT 8 cavidades" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Número de PO</label>
+                        <input type="text" id="pr-po" required placeholder="Ej. PO-4500123456 o Pendiente" class="w-full border rounded p-2 text-sm bg-slate-50 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div class="md:col-span-3 flex justify-between items-center pt-2">
+                        <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Guardar Registro PR
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h2 class="text-lg font-bold text-slate-800">Listado y Control de Requisiciones (PR's) y Tooling</h2>
+                    <span class="bg-cyan-100 text-cyan-800 text-xs font-semibold px-3 py-1 rounded-full" id="contador-prs">0 Registros</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="tabla-prs">
+                        <thead>
+                            <tr class="bg-slate-100 border-b text-xs text-slate-600 uppercase">
+                                <th class="p-2.5">Número de PR</th>
+                                <th class="p-2.5">Área</th>
+                                <th class="p-2.5">Descripción de Tooling</th>
+                                <th class="p-2.5">Status</th>
+                                <th class="p-2.5">Número de PO</th>
+                                <th class="p-2.5 text-center">Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: PESTAÑAS OPERATIVAS (YIELD Y TIEMPO MUERTO) -->
+        <section id="sec-operativa" class="tab-content hidden space-y-6">
+            <div class="bg-emerald-50 border border-emerald-200 p-6 rounded-xl shadow-sm space-y-3">
+                <h3 class="text-md font-bold text-emerald-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i> Carga Masiva de Archivo Excel para <span id="excel-section-title"></span>
+                </h3>
+                <p class="text-xs text-emerald-700">Sube un archivo de Excel (.xlsx, .xls) con columnas ordenadas: Fecha, Área, Problema, Acción, Contención, Status, Valor.</p>
+                <div class="flex flex-col sm:flex-row gap-3 items-center">
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="border border-emerald-300 rounded p-2 text-sm bg-white flex-1 w-full">
+                    <button onclick="importarDatosExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-upload"></i> Cargar Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 id="operativa-titulo" class="text-lg font-bold mb-4">Registro Operativo</h2>
+                <form id="form-operativo" onsubmit="guardarRegistroOperativo(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                        <input type="date" id="op-fecha" required class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Área / Línea</label>
+                        <input type="text" id="op-area" required placeholder="Ej. Línea SMT 1" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Problema / Defecto</label>
+                        <input type="text" id="op-problema" required placeholder="Descripción breve" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Acción Correctiva</label>
+                        <input type="text" id="op-accion" required placeholder="Acción tomada" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Contención</label>
+                        <input type="text" id="op-contencion" required placeholder="Medida de contención" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                        <select id="op-status" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="Completado">Completado</option>
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="En Revisión">En Revisión</option>
+                            <option value="Delay">Delay</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="label-valor-num">Valor Métrico (% Yield o Minutos)</label>
+                        <input type="number" step="any" id="op-valor" required value="0" class="w-full md:w-1/3 border rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm transition cursor-pointer">Guardar Registro</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                <h3 class="font-bold text-md mb-3">Registros del Proyecto (Últimos 6 Meses)</h3>
+                <table class="w-full text-left border-collapse" id="tabla-operativa">
+                    <thead>
+                        <tr class="bg-slate-100 border-b text-xs text-slate-600 uppercase">
+                            <th class="p-2">Fecha</th>
+                            <th class="p-2">Área</th>
+                            <th class="p-2">Problema</th>
+                            <th class="p-2">Acción</th>
+                            <th class="p-2">Contención</th>
+                            <th class="p-2">Status</th>
+                            <th class="p-2">Valor</th>
+                            <th class="p-2">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+
+            <!-- CONTENEDOR DE GRÁFICA OPERATIVA (YIELD O TIEMPO MUERTO) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center">
+                <h3 id="grafica-operativa-titulo" class="text-sm font-bold text-slate-700 mb-4 self-start"><i class="fa-solid fa-chart-line text-blue-600"></i> Gráfica de Comportamiento</h3>
+                <div class="w-full h-80 relative">
+                    <canvas id="graficaOperativaCanvas"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: ACCIONES -->
+        <section id="sec-acciones" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Registro y Control de Acciones y Analítica Gráfica</h2>
+                    <p class="text-xs text-slate-500">Captura de acciones correctivas detalladas con soporte de imágenes y visualization de Top de incidencias.</p>
+                </div>
+
+                <!-- Formulario de Registro de Acciones Personalizado -->
+                <form id="form-accion-detallada" onsubmit="guardarAccionDetallada(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                        <input type="date" id="acc-fecha" required class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Modelo</label>
+                        <select id="acc-modelo" required class="w-full border rounded p-2 text-sm bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Área</label>
+                        <input type="text" id="acc-area" required placeholder="Ej. Calidad / SMT" class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Problema</label>
+                        <input type="text" id="acc-problema" required placeholder="Descripción del defecto o problema..." class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Acción</label>
+                        <input type="text" id="acc-accion" required placeholder="Acción correctiva implementada..." class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Contención</label>
+                        <input type="text" id="acc-contencion" required placeholder="Medida de contención inmediata..." class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha de Cierre</label>
+                        <input type="date" id="acc-fechacierre" required class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                        <select id="acc-status" class="w-full border rounded p-2 text-sm bg-white">
+                            <option value="Completado">Completado</option>
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="En Revisión">En Revisión</option>
+                            <option value="Delay">Delay</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Verificado</label>
+                        <select id="acc-verificado" class="w-full border rounded p-2 text-sm bg-white">
+                            <option value="Sí">Sí</option>
+                            <option value="No">No</option>
+                            <option value="Pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Anexar Imagen (.jpg, .png)</label>
+                        <input type="file" id="acc-imagen" accept="image/jpeg, image/png" class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    <div class="md:col-span-3">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Guardar Acción
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Contenedor de la Gráfica Chart.js (Top 5 Modelos con Estatus Críticos) -->
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col items-center">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 self-start"><i class="fa-solid fa-chart-pie text-blue-600"></i> Top 5 Modelos con Acciones en Estatus: "En Proceso", "En Revisión" y "Delay"</h3>
+                    <div class="w-full max-w-2xl h-80 relative">
+                        <canvas id="graficaTopAcciones"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla Detallada de Acciones -->
+                <div class="overflow-x-auto pt-4">
+                    <h3 class="text-md font-bold text-slate-700 mb-3">Listado General de Acciones Registradas</h3>
+                    <table class="w-full text-left border-collapse" id="tabla-acciones-general">
+                        <thead>
+                            <tr class="bg-slate-100 border-b text-xs text-slate-600 uppercase">
+                                <th class="p-2">Fecha</th>
+                                <th class="p-2">Modelo</th>
+                                <th class="p-2">Área</th>
+                                <th class="p-2">Problema / Acción</th>
+                                <th class="p-2">Contención</th>
+                                <th class="p-2">Cierre</th>
+                                <th class="p-2">Status</th>
+                                <th class="p-2">Verificado</th>
+                                <th class="p-2">Imagen</th>
+                                <th class="p-2">Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: MEJORAS / IMPROVEMENTS -->
+        <section id="sec-mejoras" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Registro de Mejoras / Improvements (Antes y Después)</h2>
+                    <p class="text-xs text-slate-500">Documenta las mejoras implementadas indicando el proyecto, descripciones y evidencias fotográficas de los estados Antes y Después.</p>
+                </div>
+
+                <!-- Formulario de Registro de Mejoras -->
+                <form id="form-mejora" onsubmit="guardarMejora(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Proyecto / Modelo</label>
+                        <select id="mejora-modelo" required class="w-full border rounded p-2 text-sm bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Título / Asunto de la Mejora</label>
+                        <input type="text" id="mejora-titulo" required placeholder="Ej. Optimización de ruta en línea SMT" class="w-full border rounded p-2 text-sm bg-white">
+                    </div>
+                    
+                    <!-- Bloque ANTES -->
+                    <div class="bg-amber-50/50 p-4 rounded-lg border border-amber-200 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-amber-800"><i class="fa-solid fa-clock-rotate-left"></i> Estado Anterior (Antes)</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción del Antes</label>
+                            <textarea id="mejora-desc-antes" rows="3" required placeholder="Detalle cómo operaba o se encontraba antes..." class="w-full border rounded p-2 text-sm bg-white"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Imagen del Antes (.jpg, .png)</label>
+                            <input type="file" id="mejora-img-antes" accept="image/jpeg, image/png" required class="w-full border rounded p-2 text-sm bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Bloque DESPUÉS -->
+                    <div class="bg-emerald-50/50 p-4 rounded-lg border border-emerald-200 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-emerald-800"><i class="fa-solid fa-circle-check"></i> Estado Mejorado (Después)</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción del Después</label>
+                            <textarea id="mejora-desc-despues" rows="3" required placeholder="Detalle cómo quedó implementada la mejora..." class="w-full border rounded p-2 text-sm bg-white"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Imagen del Después (.jpg, .png)</label>
+                            <input type="file" id="mejora-img-despues" accept="image/jpeg, image/png" required class="w-full border rounded p-2 text-sm bg-white">
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 pt-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Guardar Mejora
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Filtro y Listado de Mejoras -->
+                <div class="space-y-4 pt-4 border-t">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h3 class="text-md font-bold text-slate-700">Listado de Mejoras por Proyecto</h3>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filtrar por Proyecto:</label>
+                            <select id="filtro-mejora-proyecto" onchange="renderizarListadoMejoras()" class="border rounded p-1.5 text-sm bg-white focus:outline-none focus:border-blue-500"></select>
+                        </div>
+                    </div>
+                    
+                    <div id="contenedor-grid-mejoras" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: MAPEO DE PROCESO -->
+        <section id="sec-mapeo" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-2">Mapeo de Proceso</h2>
+                <form id="form-mapeo" onsubmit="guardarMapeo(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción de la Estación / Proceso</label>
+                        <textarea id="map-desc" rows="3" required class="w-full border rounded p-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Detalle técnico..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Imagen (PNG, JPG)</label>
+                        <input type="file" id="map-file" accept="image/*" required class="text-sm">
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm transition cursor-pointer">Cargar Mapeo</button>
+                </form>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-md mb-4">Diagramas Registrados</h3>
+                <div id="contenedor-imagenes-mapeo" class="space-y-6"></div>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: ENLACES EXTERNOS -->
+        <section id="sec-enlaces" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-2">Enlaces Externos y Documentación</h2>
+                <form id="form-enlaces" onsubmit="guardarEnlace(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Título del Enlace</label>
+                        <input type="text" id="link-titulo" required placeholder="Ej. SharePoint" class="w-full border rounded p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">URL</label>
+                        <input type="url" id="link-url" required placeholder="https://..." class="w-full border rounded p-2 text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded text-sm transition cursor-pointer">Agregar Enlace</button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-md mb-3">Enlaces Disponibles</h3>
+                <ul id="lista-enlaces" class="space-y-2 text-sm"></ul>
+            </div>
+        </section>
+
+        <!-- CONTENIDO: DASHBOARD Y TOP 5 -->
+        <section id="sec-dashboard" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-1">Dashboard Analítico - <span id="dash-model-title"></span></h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col items-center">
+                        <h3 class="font-semibold text-sm mb-3 text-slate-700 self-start"><i class="fa-solid fa-chart-bar text-red-500"></i> Top 5 Tiempos Muertos (Minutos)</h3>
+                        <div class="w-full h-72 relative">
+                            <canvas id="graficaDashboardParos"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col items-center">
+                        <h3 class="font-semibold text-sm mb-3 text-slate-700 self-start"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Top 5 Áreas con Incidencias</h3>
+                        <div class="w-full h-72 relative">
+                            <canvas id="graficaDashboardAreas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Script JavaScript -->
+    <script>
+        const MODELOS_GENERALES_INICIAL = [
+            "HID", "RIVIAN", "SENSITECH", "ULTRA", "GM", "MARELLI", 
+            "BROSE", "SENSATA", "ASSA ABLOY", "TKS", "VALEO", "EMERSON"
+        ];
+
+        const MODELOS_NPI_INICIAL = [
+            "GHOST", "BELIMO", "FORD LS", "TE CONNECTIVITY"
+        ];
+
+        if (!localStorage.getItem('db_generales')) localStorage.setItem('db_generales', JSON.stringify(MODELOS_GENERALES_INICIAL));
+        if (!localStorage.getItem('db_npi')) localStorage.setItem('db_npi', JSON.stringify(MODELOS_NPI_INICIAL));
+        if (!localStorage.getItem('db_registros')) localStorage.setItem('db_registros', JSON.stringify([]));
+        if (!localStorage.getItem('db_acciones_detalladas')) localStorage.setItem('db_acciones_detalladas', JSON.stringify([]));
+        if (!localStorage.getItem('db_mejoras')) localStorage.setItem('db_mejoras', JSON.stringify([]));
+        if (!localStorage.getItem('db_registros_npi')) localStorage.setItem('db_registros_npi', JSON.stringify([]));
+        if (!localStorage.getItem('db_registros_prs')) localStorage.setItem('db_registros_prs', JSON.stringify([]));
+        if (!localStorage.getItem('db_mapeo')) localStorage.setItem('db_mapeo', JSON.stringify([]));
+        if (!localStorage.getItem('db_enlaces')) localStorage.setItem('db_enlaces', JSON.stringify([]));
+
+        let pestañaActual = 'matriz';
+        let modeloActual = obtenerTodosModelos()[0];
+        let chartTopAccionesInstance = null;
+        let chartOperativaInstance = null;
+        let chartDashParosInstance = null;
+        let chartDashAreasInstance = null;
+
+        function obtenerTodosModelos() {
+            let gen = JSON.parse(localStorage.getItem('db_generales')) || [];
+            let npi = JSON.parse(localStorage.getItem('db_npi')) || [];
+            return [...gen, ...npi];
+        }
+
+        function actualizarSelectorGlobal() {
+            const selectModelos = document.getElementById('global-model-select');
+            selectModelos.innerHTML = '';
+            let todos = obtenerTodosModelos();
+            if(!todos.includes(modeloActual) && todos.length > 0) modeloActual = todos[0];
+
+            todos.forEach(m => {
+                let opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if(m === modeloActual) opt.selected = true;
+                selectModelos.appendChild(opt);
+            });
+        }
+
+        document.getElementById('global-model-select').addEventListener('change', (e) => {
+            modeloActual = e.target.value;
+            actualizarVistaActual();
+        });
+
+        function cambiarPestana(pestana) {
+            pestañaActual = pestana;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.target === pestana) {
+                    btn.classList.remove('bg-white', 'text-slate-700', 'border');
+                    btn.classList.add('bg-slate-900', 'text-white', 'shadow-sm');
+                } else {
+                    btn.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
+                    btn.classList.add('bg-white', 'text-slate-700', 'border', 'border-slate-200');
+                }
+            });
+
+            document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+
+            if(pestana === 'matriz') {
+                document.getElementById('sec-matriz').classList.remove('hidden');
+                renderizarListadoMatrizGeneral();
+            } else if(pestana === 'npi') {
+                document.getElementById('sec-npi').classList.remove('hidden');
+                poblarSelectNPI();
+                renderizarTablaNPI();
+            } else if(pestana === 'prs') {
+                document.getElementById('sec-prs').classList.remove('hidden');
+                renderizarTablaPRs();
+            } else if(['yield_diario', 'yield_semanal', 'tiempo_muerto'].includes(pestana)) {
+                document.getElementById('sec-operativa').classList.remove('hidden');
+                configurarSeccionOperativa(pestana);
+            } else if(pestana === 'acciones') {
+                document.getElementById('sec-acciones').classList.remove('hidden');
+                poblarSelectModelosAcciones();
+                renderizarSeccionAcciones();
+            } else if(pestana === 'mejoras') {
+                document.getElementById('sec-mejoras').classList.remove('hidden');
+                poblarSelectsMejoras();
+                renderizarListadoMejoras();
+            } else if(pestana === 'mapeo') {
+                document.getElementById('sec-mapeo').classList.remove('hidden');
+                renderizarMapeo();
+            } else if(pestana === 'enlaces') {
+                document.getElementById('sec-enlaces').classList.remove('hidden');
+                renderizarEnlaces();
+            } else if(pestana === 'dashboard') {
+                document.getElementById('sec-dashboard').classList.remove('hidden');
+                renderizarDashboard();
+            }
+        }
+
+        function actualizarVistaActual() { cambiarPestana(pestañaActual); }
+        function limpiarRegistrosAntiguos(regs) {
+            const haceSeisMeses = new Date();
+            haceSeisMeses.setMonth(haceSeisMeses.getMonth() - 6);
+            return regs.filter(r => new Date(r.fecha) >= haceSeisMeses);
+        }
+
+        function obtenerBadgeStatus(status) {
+            let clases = "px-2.5 py-1 rounded-full text-xs font-semibold ";
+            if(status === 'Completado' || status === 'Aprobada') clases += "bg-emerald-100 text-emerald-800";
+            else if(status === 'En Proceso') clases += "bg-amber-100 text-amber-800";
+            else if(status === 'En Revisión') clases += "bg-yellow-100 text-yellow-800";
+            else if(status === 'Delay') clases += "bg-rose-100 text-rose-800";
+            return `<span class="${clases}">${status}</span>`;
+        }
+
+        function importarDatosExcel() {
+            const fileInput = document.getElementById('excel-file-input');
+            if(!fileInput.files || fileInput.files.length === 0) {
+                alert('Por favor selecciona un archivo de Excel.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+
+                    if(jsonRows.length === 0) {
+                        alert('El archivo de Excel está vacío.');
+                        return;
+                    }
+
+                    let registros = JSON.parse(localStorage.getItem('db_registros')) || [];
+                    let agregados = 0;
+
+                    jsonRows.forEach(row => {
+                        registros.push({
+                            id: Date.now() + Math.random(),
+                            pestana: pestañaActual,
+                            modelo: modeloActual,
+                            fecha: row.Fecha ? new Date(row.Fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            area: row.Area || row.Área || 'General',
+                            problema: row.Problema || row.Defecto || 'N/A',
+                            accion: row.Accion || row.Acción || 'N/A',
+                            contencion: row.Contencion || row.Contención || 'N/A',
+                            status: row.Status || 'En Proceso',
+                            valor: parseFloat(row.Valor || row.Yield || row.Minutos || 0)
+                        });
+                        agregados++;
+                    });
+
+                    localStorage.setItem('db_registros', JSON.stringify(limpiarRegistrosAntiguos(registros)));
+                    fileInput.value = '';
+                    renderizarTablaOperativa(pestañaActual);
+                    alert(`¡Se importaron ${agregados} registros desde el Excel exitosamente!`);
+                } catch(error) {
+                    console.error(error);
+                    alert('Error al procesar el archivo Excel.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function guardarNuevoProyectoGeneral(e) {
+            e.preventDefault();
+            const input = document.getElementById('input-nuevo-general');
+            const nuevoNombre = input.value.trim().toUpperCase();
+            if(!nuevoNombre) return;
+
+            let genList = JSON.parse(localStorage.getItem('db_generales')) || [];
+            let npiList = JSON.parse(localStorage.getItem('db_npi')) || [];
+
+            if(genList.includes(nuevoNombre) || npiList.includes(nuevoNombre)) {
+                alert('El proyecto ya existe.');
+                return;
+            }
+
+            genList.push(nuevoNombre);
+            localStorage.setItem('db_generales', JSON.stringify(genList));
+            input.value = '';
+            actualizarSelectorGlobal();
+            renderizarListadoMatrizGeneral();
+        }
+
+        function renderizarListadoMatrizGeneral() {
+            let genList = JSON.parse(localStorage.getItem('db_generales')) || [];
+            const grid = document.getElementById('grid-matriz-general');
+            document.getElementById('contador-matriz-general').textContent = `${genList.length} Proyectos`;
+            grid.innerHTML = '';
+
+            genList.forEach(m => {
+                let card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 p-3.5 rounded-lg flex justify-between items-center";
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span class="text-sm font-bold text-slate-700">${m}</span>
+                    </div>
+                    <button onclick="modeloActual='${m}'; actualizarSelectorGlobal(); cambiarPestana('dashboard');" class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded transition font-medium cursor-pointer">Ver Dashboard</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ==========================================
+        // GESTIÓN DE PROYECTOS NPI
+        // ==========================================
+        function poblarSelectNPI() {
+            let npiModels = JSON.parse(localStorage.getItem('db_npi')) || [];
+            const select = document.getElementById('npi-modelo');
+            select.innerHTML = '';
+            npiModels.forEach(m => {
+                let opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                select.appendChild(opt);
+            });
+            document.getElementById('npi-fechacorrida').valueAsDate = new Date();
+        }
+
+        function guardarProyectoNPI(e) {
+            e.preventDefault();
+            let registrosNPI = JSON.parse(localStorage.getItem('db_registros_npi')) || [];
+            
+            registrosNPI.push({
+                id: Date.now(),
+                modelo: document.getElementById('npi-modelo').value,
+                area: document.getElementById('npi-area').value,
+                revision: document.getElementById('npi-revision').value,
+                accion: document.getElementById('npi-accion').value,
+                status: document.getElementById('npi-status').value,
+                fechaCorrida: document.getElementById('npi-fechacorrida').value,
+                statusGeneral: document.getElementById('npi-statusgeneral').value
+            });
+
+            localStorage.setItem('db_registros_npi', JSON.stringify(registrosNPI));
+            e.target.reset();
+            document.getElementById('npi-fechacorrida').valueAsDate = new Date();
+            renderizarTablaNPI();
+        }
+
+        function renderizarTablaNPI() {
+            let registrosNPI = JSON.parse(localStorage.getItem('db_registros_npi')) || [];
+            const tbody = document.querySelector('#tabla-npi tbody');
+            document.getElementById('contador-npi').textContent = `${registrosNPI.length} Registros`;
+            tbody.innerHTML = '';
+
+            registrosNPI.forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-2.5 font-bold text-slate-700">${r.modelo}</td>
+                        <td class="p-2.5 text-xs">${r.area}</td>
+                        <td class="p-2.5 text-xs font-semibold">${r.revision}</td>
+                        <td class="p-2.5 text-xs">${r.accion}</td>
+                        <td class="p-2.5 text-xs">${obtenerBadgeStatus(r.status)}</td>
+                        <td class="p-2.5 text-xs">${r.fechaCorrida}</td>
+                        <td class="p-2.5 text-xs"><span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-semibold">${r.statusGeneral}</span></td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="moverAMatrizGeneral('${r.modelo}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer">Mover</button>
+                        </td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="eliminarRegistroNPI(${r.id})" class="text-rose-600 hover:text-rose-800 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function eliminarRegistroNPI(id) {
+            let registrosNPI = JSON.parse(localStorage.getItem('db_registros_npi')) || [];
+            localStorage.setItem('db_registros_npi', JSON.stringify(registrosNPI.filter(r => r.id !== id)));
+            renderizarTablaNPI();
+        }
+
+        function moverAMatrizGeneral(modelo) {
+            let npi = JSON.parse(localStorage.getItem('db_npi')) || [];
+            let gen = JSON.parse(localStorage.getItem('db_generales')) || [];
+            npi = npi.filter(m => m !== modelo);
+            if(!gen.includes(modelo)) gen.push(modelo);
+            localStorage.setItem('db_npi', JSON.stringify(npi));
+            localStorage.setItem('db_generales', JSON.stringify(gen));
+            actualizarSelectorGlobal();
+            renderizarTablaNPI();
+            renderizarListadoMatrizGeneral();
+        }
+
+        // ==========================================
+        // GESTIÓN DE STATUS PR'S
+        // ==========================================
+        function guardarRegistroPR(e) {
+            e.preventDefault();
+            let registrosPRs = JSON.parse(localStorage.getItem('db_registros_prs')) || [];
+
+            registrosPRs.push({
+                id: Date.now(),
+                numeroPR: document.getElementById('pr-numero').value,
+                area: document.getElementById('pr-area').value,
+                descripcionTooling: document.getElementById('pr-descripcion').value,
+                status: document.getElementById('pr-status').value,
+                numeroPO: document.getElementById('pr-po').value
+            });
+
+            localStorage.setItem('db_registros_prs', JSON.stringify(registrosPRs));
+            e.target.reset();
+            renderizarTablaPRs();
+        }
+
+        function renderizarTablaPRs() {
+            let registrosPRs = JSON.parse(localStorage.getItem('db_registros_prs')) || [];
+            const tbody = document.querySelector('#tabla-prs tbody');
+            document.getElementById('contador-prs').textContent = `${registrosPRs.length} Registros`;
+            tbody.innerHTML = '';
+
+            registrosPRs.forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-2.5 font-bold text-slate-700">${r.numeroPR}</td>
+                        <td class="p-2.5 text-xs">${r.area}</td>
+                        <td class="p-2.5 text-xs">${r.descripcionTooling}</td>
+                        <td class="p-2.5 text-xs">${obtenerBadgeStatus(r.status)}</td>
+                        <td class="p-2.5 text-xs font-semibold text-cyan-700">${r.numeroPO}</td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="eliminarRegistroPR(${r.id})" class="text-rose-600 hover:text-rose-800 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function eliminarRegistroPR(id) {
+            let registrosPRs = JSON.parse(localStorage.getItem('db_registros_prs')) || [];
+            localStorage.setItem('db_registros_prs', JSON.stringify(registrosPRs.filter(r => r.id !== id)));
+            renderizarTablaPRs();
+        }
+
+        function configurarSeccionOperativa(pestana) {
+            const titulos = {
+                'yield_diario': 'Yield Diario',
+                'yield_semanal': 'Yield Semanal',
+                'tiempo_muerto': 'Tiempo Muerto'
+            };
+            document.getElementById('excel-section-title').textContent = titulos[pestana];
+            document.getElementById('operativa-titulo').textContent = `Gestión de ${titulos[pestana]} - [${modeloActual}]`;
+            document.getElementById('op-fecha').valueAsDate = new Date();
+            renderizarTablaOperativa(pestana);
+        }
+
+        function guardarRegistroOperativo(e) {
+            e.preventDefault();
+            let registros = JSON.parse(localStorage.getItem('db_registros')) || [];
+            registros.push({
+                id: Date.now(),
+                pestana: pestañaActual,
+                modelo: modeloActual,
+                fecha: document.getElementById('op-fecha').value,
+                area: document.getElementById('op-area').value,
+                problema: document.getElementById('op-problema').value,
+                accion: document.getElementById('op-accion').value,
+                contencion: document.getElementById('op-contencion').value,
+                status: document.getElementById('op-status').value,
+                valor: parseFloat(document.getElementById('op-valor').value) || 0
+            });
+            localStorage.setItem('db_registros', JSON.stringify(limpiarRegistrosAntiguos(registros)));
+            e.target.reset();
+            document.getElementById('op-fecha').valueAsDate = new Date();
+            renderizarTablaOperativa(pestañaActual);
+        }
+
+        function renderizarTablaOperativa(pestana) {
+            let registros = JSON.parse(localStorage.getItem('db_registros')) || [];
+            let filtrados = registros.filter(r => r.pestana === pestana && r.modelo === modeloActual);
+            const tbody = document.querySelector('#tabla-operativa tbody');
+            tbody.innerHTML = '';
+
+            filtrados.forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 text-xs">${r.fecha}</td>
+                        <td class="p-2 text-xs">${r.area}</td>
+                        <td class="p-2 text-xs">${r.problema}</td>
+                        <td class="p-2 text-xs">${r.accion}</td>
+                        <td class="p-2 text-xs">${r.contencion}</td>
+                        <td class="p-2 text-xs">${obtenerBadgeStatus(r.status)}</td>
+                        <td class="p-2 text-xs font-bold">${r.valor}</td>
+                        <td class="p-2 text-xs"><button onclick="eliminarRegistroOperativo(${r.id})" class="text-rose-600 cursor-pointer"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`;
+            });
+
+            renderizarGraficaOperativa(pestana, filtrados);
+        }
+
+        function renderizarGraficaOperativa(pestana, filtrados) {
+            const ctx = document.getElementById('graficaOperativaCanvas').getContext('2d');
+            const tituloGrafica = document.getElementById('grafica-operativa-titulo');
+            
+            if (chartOperativaInstance) {
+                chartOperativaInstance.destroy();
+            }
+
+            let labels = filtrados.map(r => `${r.fecha} (${r.area})`);
+            let dataValues = filtrados.map(r => r.valor);
+            let labelDataset = '';
+            let colorGrafica = '';
+
+            if (pestana === 'yield_diario') {
+                tituloGrafica.innerHTML = `<i class="fa-solid fa-chart-line text-emerald-600"></i> Comportamiento de Yield Diario (%) - ${modeloActual}`;
+                labelDataset = 'Yield Diario (%)';
+                colorGrafica = '#059669';
+            } else if (pestana === 'yield_semanal') {
+                tituloGrafica.innerHTML = `<i class="fa-solid fa-chart-line text-emerald-600"></i> Comportamiento de Yield Semanal (%) - ${modeloActual}`;
+                labelDataset = 'Yield Semanal (%)';
+                colorGrafica = '#2563eb';
+            } else if (pestana === 'tiempo_muerto') {
+                tituloGrafica.innerHTML = `<i class="fa-solid fa-chart-bar text-rose-600"></i> Acumulado de Tiempo Muerto (Minutos) - ${modeloActual}`;
+                labelDataset = 'Tiempo Muerto (Min)';
+                colorGrafica = '#e11d48';
+            }
+
+            chartOperativaInstance = new Chart(ctx, {
+                type: pestana === 'tiempo_muerto' ? 'bar' : 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Sin registros'],
+                    datasets: [{
+                        label: labelDataset,
+                        data: dataValues.length > 0 ? dataValues : [0],
+                        backgroundColor: colorGrafica,
+                        borderColor: colorGrafica,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function eliminarRegistroOperativo(id) {
+            let registros = JSON.parse(localStorage.getItem('db_registros')) || [];
+            localStorage.setItem('db_registros', JSON.stringify(registros.filter(r => r.id !== id)));
+            renderizarTablaOperativa(pestañaActual);
+        }
+
+        // ==========================================
+        // SECCIÓN DE ACCIONES (CON IMAGEN JPG/PNG)
+        // ==========================================
+        function poblarSelectModelosAcciones() {
+            let todos = obtenerTodosModelos();
+            const select = document.getElementById('acc-modelo');
+            select.innerHTML = '';
+            todos.forEach(m => {
+                let opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if(m === modeloActual) opt.selected = true;
+                select.appendChild(opt);
+            });
+            document.getElementById('acc-fecha').valueAsDate = new Date();
+            document.getElementById('acc-fechacierre').valueAsDate = new Date();
+        }
+
+        function guardarAccionDetallada(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('acc-imagen');
+            
+            const guardarDatosConImagen = (imagenBase64) => {
+                let accionesList = JSON.parse(localStorage.getItem('db_acciones_detalladas')) || [];
+                accionesList.push({
+                    id: Date.now(),
+                    fecha: document.getElementById('acc-fecha').value,
+                    modelo: document.getElementById('acc-modelo').value,
+                    area: document.getElementById('acc-area').value,
+                    problema: document.getElementById('acc-problema').value,
+                    accion: document.getElementById('acc-accion').value,
+                    contencion: document.getElementById('acc-contencion').value,
+                    fechaCierre: document.getElementById('acc-fechacierre').value,
+                    status: document.getElementById('acc-status').value,
+                    verificado: document.getElementById('acc-verificado').value,
+                    imagen: imagenBase64 || null
+                });
+                localStorage.setItem('db_acciones_detalladas', JSON.stringify(accionesList));
+                e.target.reset();
+                poblarSelectModelosAcciones();
+                renderizarSeccionAcciones();
+            };
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    guardarDatosConImagen(evt.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                guardarDatosConImagen(null);
+            }
+        }
+
+        function renderizarSeccionAcciones() {
+            let accionesList = JSON.parse(localStorage.getItem('db_acciones_detalladas')) || [];
+            const tbody = document.querySelector('#tabla-acciones-general tbody');
+            tbody.innerHTML = '';
+
+            accionesList.forEach(r => {
+                let imagenHtml = r.imagen ? `<a href="${r.imagen}" target="_blank"><img src="${r.imagen}" class="w-12 h-12 object-cover rounded border hover:scale-150 transition cursor-pointer" title="Ver imagen completa"></a>` : `<span class="text-xs text-slate-400">Sin imagen</span>`;
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 text-xs">${r.fecha}</td>
+                        <td class="p-2 text-xs font-bold text-slate-700">${r.modelo}</td>
+                        <td class="p-2 text-xs">${r.area}</td>
+                        <td class="p-2 text-xs"><strong class="text-slate-900">Prob:</strong> ${r.problema}<br><strong class="text-slate-900">Acc:</strong> ${r.accion}</td>
+                        <td class="p-2 text-xs">${r.contencion}</td>
+                        <td class="p-2 text-xs">${r.fechaCierre}</td>
+                        <td class="p-2 text-xs">${obtenerBadgeStatus(r.status)}</td>
+                        <td class="p-2 text-xs font-semibold">${r.verificado}</td>
+                        <td class="p-2 text-xs">${imagenHtml}</td>
+                        <td class="p-2 text-xs"><button onclick="eliminarAccionDetallada(${r.id})" class="text-rose-600 cursor-pointer"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`;
+            });
+
+            let accionesCriticas = accionesList.filter(r => r.status === 'En Proceso' || r.status === 'En Revisión' || r.status === 'Delay');
+            let conteoProyectos = {};
+            accionesCriticas.forEach(r => {
+                conteoProyectos[r.modelo] = (conteoProyectos[r.modelo] || 0) + 1;
+            });
+
+            let topProyectos = Object.entries(conteoProyectos)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            let labels = topProyectos.map(item => item[0]);
+            let dataValues = topProyectos.map(item => item[1]);
+
+            const ctx = document.getElementById('graficaTopAcciones').getContext('2d');
+            if (chartTopAccionesInstance) {
+                chartTopAccionesInstance.destroy();
+            }
+
+            chartTopAccionesInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Sin datos suficientes'],
+                    datasets: [{
+                        label: 'Acciones en Proceso, Revisión o Delay',
+                        data: dataValues.length > 0 ? dataValues : [0],
+                        backgroundColor: ['#e11d48', '#f59e0b', '#3b82f6', '#8b5cf6', '#06b6d4'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function eliminarAccionDetallada(id) {
+            let accionesList = JSON.parse(localStorage.getItem('db_acciones_detalladas')) || [];
+            localStorage.setItem('db_acciones_detalladas', JSON.stringify(accionesList.filter(r => r.id !== id)));
+            renderizarSeccionAcciones();
+        }
+
+        // ==========================================
+        // SECCIÓN DE MEJORAS / IMPROVEMENTS
+        // ==========================================
+        function poblarSelectsMejoras() {
+            let todos = obtenerTodosModelos();
+            const selectForm = document.getElementById('mejora-modelo');
+            const selectFiltro = document.getElementById('filtro-mejora-proyecto');
+            
+            selectForm.innerHTML = '';
+            selectFiltro.innerHTML = '<option value="TODOS">-- Todos los Proyectos --</option>';
+
+            todos.forEach(m => {
+                let opt1 = document.createElement('option');
+                opt1.value = m;
+                opt1.textContent = m;
+                if(m === modeloActual) opt1.selected = true;
+                selectForm.appendChild(opt1);
+
+                let opt2 = document.createElement('option');
+                opt2.value = m;
+                opt2.textContent = m;
+                selectFiltro.appendChild(opt2);
+            });
+        }
+
+        function guardarMejora(e) {
+            e.preventDefault();
+            const modelo = document.getElementById('mejora-modelo').value;
+            const titulo = document.getElementById('mejora-titulo').value;
+            const descAntes = document.getElementById('mejora-desc-antes').value;
+            const descDespues = document.getElementById('mejora-desc-despues').value;
+            
+            const fileAntes = document.getElementById('mejora-img-antes').files[0];
+            const fileDespues = document.getElementById('mejora-img-despues').files[0];
+
+            if(!fileAntes || !fileDespues) {
+                alert('Por favor selecciona tanto la imagen del Antes como la del Después.');
+                return;
+            }
+
+            const readerAntes = new FileReader();
+            readerAntes.onload = function(evtAntes) {
+                const imgAntesBase64 = evtAntes.target.result;
+
+                const readerDespues = new FileReader();
+                readerDespues.onload = function(evtDespues) {
+                    const imgDespuesBase64 = evtDespues.target.result;
+
+                    let mejorasList = JSON.parse(localStorage.getItem('db_mejoras')) || [];
+                    mejorasList.push({
+                        id: Date.now(),
+                        modelo: modelo,
+                        titulo: titulo,
+                        descAntes: descAntes,
+                        imgAntes: imgAntesBase64,
+                        descDespues: descDespues,
+                        imgDespues: imgDespuesBase64
+                    });
+
+                    localStorage.setItem('db_mejoras', JSON.stringify(mejorasList));
+                    e.target.reset();
+                    poblarSelectsMejoras();
+                    renderizarListadoMejoras();
+                };
+                readerDespues.readAsDataURL(fileDespues);
+            };
+            readerAntes.readAsDataURL(fileAntes);
+        }
+
+        function renderizarListadoMejoras() {
+            let mejorasList = JSON.parse(localStorage.getItem('db_mejoras')) || [];
+            const filtroProyecto = document.getElementById('filtro-mejora-proyecto').value;
+            const contenedor = document.getElementById('contenedor-grid-mejoras');
+
+            let filtrados = mejorasList;
+            if(filtroProyecto && filtroProyecto !== 'TODOS') {
+                filtrados = mejorasList.filter(m => m.modelo === filtroProyecto);
+            }
+
+            contenedor.innerHTML = filtrados.length === 0 ? `<p class="text-sm text-slate-400 md:col-span-2">No hay mejoras registradas para este filtro.</p>` : '';
+
+            filtrados.forEach(m => {
+                contenedor.innerHTML += `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded">${m.modelo}</span>
+                                <button onclick="eliminarMejora(${m.id})" class="text-rose-600 hover:text-rose-800 text-xs cursor-pointer" title="Eliminar mejora"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-base mb-3">${m.titulo}</h4>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                <!-- ANTES -->
+                                <div class="bg-amber-50/70 border border-amber-200 p-3 rounded-lg space-y-2">
+                                    <span class="text-xs font-bold uppercase text-amber-900 block"><i class="fa-solid fa-clock-rotate-left"></i> Antes</span>
+                                    <p class="text-xs text-slate-700">${m.descAntes}</p>
+                                    <a href="${m.imgAntes}" target="_blank">
+                                        <img src="${m.imgAntes}" class="w-full h-32 object-cover rounded border hover:opacity-90 transition" title="Ampliar imagen">
+                                    </a>
+                                </div>
+                                <!-- DESPUÉS -->
+                                <div class="bg-emerald-50/70 border border-emerald-200 p-3 rounded-lg space-y-2">
+                                    <span class="text-xs font-bold uppercase text-emerald-900 block"><i class="fa-solid fa-circle-check"></i> Después</span>
+                                    <p class="text-xs text-slate-700">${m.descDespues}</p>
+                                    <a href="${m.imgDespues}" target="_blank">
+                                        <img src="${m.imgDespues}" class="w-full h-32 object-cover rounded border hover:opacity-90 transition" title="Ampliar imagen">
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function eliminarMejora(id) {
+            let mejorasList = JSON.parse(localStorage.getItem('db_mejoras')) || [];
+            localStorage.setItem('db_mejoras', JSON.stringify(mejorasList.filter(m => m.id !== id)));
+            renderizarListadoMejoras();
+        }
+
+        // ==========================================
+        // GESTIÓN DE MAPEO DE PROCESO
+        // ==========================================
+        function guardarMapeo(e) {
+            e.preventDefault();
+            const desc = document.getElementById('map-desc').value;
+            const fileInput = document.getElementById('map-file');
+
+            if(fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    let mapeos = JSON.parse(localStorage.getItem('db_mapeo')) || [];
+                    mapeos.push({
+                        id: Date.now(),
+                        modelo: modeloActual,
+                        descripcion: desc,
+                        imagen: evt.target.result
+                    });
+                    localStorage.setItem('db_mapeo', JSON.stringify(mapeos));
+                    e.target.reset();
+                    renderizarMapeo();
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        function renderizarMapeo() {
+            let mapeos = JSON.parse(localStorage.getItem('db_mapeo')) || [];
+            let filtrados = mapeos.filter(m => m.modelo === modeloActual);
+            const contenedor = document.getElementById('contenedor-imagenes-mapeo');
+            contenedor.innerHTML = filtrados.length === 0 ? `<p class="text-sm text-slate-400">No hay diagramas de mapeo registrados para el modelo ${modeloActual}.</p>` : '';
+
+            filtrados.forEach(m => {
+                contenedor.innerHTML += `
+                    <div class="border border-slate-200 p-4 rounded-xl bg-slate-50 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">${m.modelo}</span>
+                            <button onclick="eliminarMapeo(${m.id})" class="text-rose-600 hover:text-rose-800 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                        </div>
+                        <p class="text-sm text-slate-700">${m.descripcion}</p>
+                        <a href="${m.imagen}" target="_blank">
+                            <img src="${m.imagen}" class="max-h-96 rounded border object-contain bg-white mx-auto" title="Ver diagrama completo">
+                        </a>
+                    </div>`;
+            });
+        }
+
+        function eliminarMapeo(id) {
+            let mapeos = JSON.parse(localStorage.getItem('db_mapeo')) || [];
+            localStorage.setItem('db_mapeo', JSON.stringify(mapeos.filter(m => m.id !== id)));
+            renderizarMapeo();
+        }
+
+        // ==========================================
+        // GESTIÓN DE ENLACES EXTERNOS
+        // ==========================================
+        function guardarEnlace(e) {
+            e.preventDefault();
+            const titulo = document.getElementById('link-titulo').value;
+            const url = document.getElementById('link-url').value;
+
+            let enlaces = JSON.parse(localStorage.getItem('db_enlaces')) || [];
+            enlaces.push({ id: Date.now(), titulo, url });
+            localStorage.setItem('db_enlaces', JSON.stringify(enlaces));
+            e.target.reset();
+            renderizarEnlaces();
+        }
+
+        function renderizarEnlaces() {
+            let enlaces = JSON.parse(localStorage.getItem('db_enlaces')) || [];
+            const lista = document.getElementById('lista-enlaces');
+            lista.innerHTML = enlaces.length === 0 ? `<li class="text-slate-400">No hay enlaces externos registrados.</li>` : '';
+
+            enlaces.forEach(l => {
+                lista.innerHTML += `
+                    <li class="flex justify-between items-center bg-slate-50 p-3 rounded border border-slate-200">
+                        <a href="${l.url}" target="_blank" class="text-blue-600 hover:underline font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-link"></i> ${l.titulo}
+                        </a>
+                        <button onclick="eliminarEnlace(${l.id})" class="text-rose-600 hover:text-rose-800 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                    </li>`;
+            });
+        }
+
+        function eliminarEnlace(id) {
+            let enlaces = JSON.parse(localStorage.getItem('db_enlaces')) || [];
+            localStorage.setItem('db_enlaces', JSON.stringify(enlaces.filter(l => l.id !== id)));
+            renderizarEnlaces();
+        }
+
+        // ==========================================
+        // DASHBOARD GENERAL Y TOP 5 CON GRÁFICAS
+        // ==========================================
+        function renderizarDashboard() {
+            document.getElementById('dash-model-title').textContent = modeloActual;
+
+            // 1. Top 5 Tiempos Muertos
+            let registros = JSON.parse(localStorage.getItem('db_registros')) || [];
+            let paros = registros.filter(r => r.pestana === 'tiempo_muerto' && r.modelo === modeloActual);
+            
+            let conteoParos = {};
+            paros.forEach(r => {
+                conteoParos[r.problema] = (conteoParos[r.problema] || 0) + (r.valor || 1);
+            });
+
+            let topParos = Object.entries(conteoParos).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            let labelsParos = topParos.map(item => item[0]);
+            let dataParos = topParos.map(item => item[1]);
+
+            const ctxParos = document.getElementById('graficaDashboardParos').getContext('2d');
+            if (chartDashParosInstance) chartDashParosInstance.destroy();
+
+            chartDashParosInstance = new Chart(ctxParos, {
+                type: 'bar',
+                data: {
+                    labels: labelsParos.length > 0 ? labelsParos : ['Sin registros'],
+                    datasets: [{
+                        label: 'Minutos de Paro',
+                        data: dataParos.length > 0 ? dataParos : [0],
+                        backgroundColor: '#e11d48',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // 2. Top 5 Áreas con Incidencias
+            let acciones = JSON.parse(localStorage.getItem('db_acciones_detalladas')) || [];
+            let accionesModelo = acciones.filter(r => r.modelo === modeloActual);
+
+            let conteoAreas = {};
+            accionesModelo.forEach(r => {
+                conteoAreas[r.area] = (conteoAreas[r.area] || 0) + 1;
+            });
+
+            let topAreas = Object.entries(conteoAreas).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            let labelsAreas = topAreas.map(item => item[0]);
+            let dataAreas = topAreas.map(item => item[1]);
+
+            const ctxAreas = document.getElementById('graficaDashboardAreas').getContext('2d');
+            if (chartDashAreasInstance) chartDashAreasInstance.destroy();
+
+            chartDashAreasInstance = new Chart(ctxAreas, {
+                type: 'bar',
+                data: {
+                    labels: labelsAreas.length > 0 ? labelsAreas : ['Sin registros'],
+                    datasets: [{
+                        label: 'Número de Incidencias',
+                        data: dataAreas.length > 0 ? dataAreas : [0],
+                        backgroundColor: '#f59e0b',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // EXPORTACIÓN DE RESPALDO JSON
+        // ==========================================
+        function exportarDatos() {
+            const dataBackup = {
+                generales: localStorage.getItem('db_generales'),
+                npi: localStorage.getItem('db_npi'),
+                registros: localStorage.getItem('db_registros'),
+                acciones_detalladas: localStorage.getItem('db_acciones_detalladas'),
+                mejoras: localStorage.getItem('db_mejoras'),
+                registros_npi: localStorage.getItem('db_registros_npi'),
+                registros_prs: localStorage.getItem('db_registros_prs'),
+                mapeo: localStorage.getItem('db_mapeo'),
+                enlaces: localStorage.getItem('db_enlaces')
+            };
+
+            const blob = new Blob([JSON.stringify(dataBackup, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Respaldo_QMS_Ingenieria_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Inicialización al cargar la página
+        window.onload = function() {
+            actualizarSelectorGlobal();
+            cambiarPestana('matriz');
+        };
+    </script>
+</body>
+</html>
